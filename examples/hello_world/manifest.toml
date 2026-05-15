@@ -1,0 +1,16 @@
+[experiment]
+exp_id = "hello"
+name = "Hello world"
+version = "1.0.0"
+entry = "index.js"
+style = "style.css"
+estimated_minutes = 1
+
+[experiment.metadata]
+contributors = ["expdeploy"]
+notes = "Single-trial example used by expdeploy smoke tests."
+
+[jspsych]
+version = "8.2.3"
+plugins = ["@jspsych/plugin-html-keyboard-response@2.1.0"]
+init = { display_element = "jspsych-target" }

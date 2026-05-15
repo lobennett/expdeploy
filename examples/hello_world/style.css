@@ -1,0 +1,15 @@
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  background: #fafafa;
+}
+
+#jspsych-target {
+  max-width: 720px;
+  margin: 4em auto;
+  text-align: center;
+}
+
+h1 {
+  font-weight: 600;
+}
