@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>expdeploy — {{ exp_id }}</title>
+    <link rel="stylesheet" href="{{ jspsych_css_url }}" />
+    {% if style_url %}
+    <link rel="stylesheet" href="{{ style_url }}" />
+    {% endif %}
+
+    <script type="importmap">
+{{ import_map | tojson }}
+    </script>
+
+    <script>
+      window.expdeploy = Object.assign(
+        {{ runtime_globals | tojson }},
+        {
+          submit(payload) {
+            return fetch({{ post_url | tojson }}, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            }).then((r) => {
+              if (!r.ok) throw new Error("POST /api/data failed: " + r.status);
+              return r.json();
+            });
+          },
+        }
+      );
+    </script>
+  </head>
+  <body>
+    <div id="jspsych-target"></div>
+    <script type="module">
+      import build from {{ experiment_entry_url | tojson }};
+      if (typeof build === "function") {
+        build();
+      } else if (build && typeof build.default === "function") {
+        build.default();
+      } else {
+        console.error("Experiment entry did not export a default function:", build);
+      }
+    </script>
+  </body>
+</html>
