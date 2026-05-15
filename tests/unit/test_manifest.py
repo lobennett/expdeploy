@@ -6,7 +6,7 @@ import tomllib
 
 import pytest
 
-from expdeploy.manifest import ExperimentManifest
+from expdeploy.manifest import ExperimentManifest, load_manifest
 
 HELLO_TOML = """
 [experiment]
@@ -88,3 +88,15 @@ def test_valid_bids_with_columns_parses():
     assert manifest.bids.task == "nback"
     assert "trial_type" in manifest.bids.columns
     assert manifest.bids.columns["trial_type"].levels["target"] == "Target"
+
+
+def test_load_manifest_from_disk(tmp_path):
+    manifest_path = tmp_path / "manifest.toml"
+    manifest_path.write_text(HELLO_TOML)
+    manifest = load_manifest(manifest_path)
+    assert manifest.experiment.exp_id == "hello"
+
+
+def test_load_manifest_missing_file_raises(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        load_manifest(tmp_path / "nope.toml")
