@@ -34,7 +34,7 @@ class ImportMapBuilder:
         version_dir = self.vendored_root / version
         if not version_dir.is_dir():
             available = sorted(p.name for p in self.vendored_root.iterdir() if p.is_dir())
-            msg = f"jsPsych version {version} is not vendored. " f"Available versions: {available}"
+            msg = f"jsPsych version {version} is not vendored. Available versions: {available}"
             raise LookupError(msg)
 
         vendored_manifest_path = version_dir / "manifest.json"

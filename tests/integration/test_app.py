@@ -110,7 +110,7 @@ def test_static_experiment_index_js_served(app_client):
 
 
 def test_post_data_writes_file(app_client):
-    client, data_dir = app_client
+    client, _data_dir = app_client
     payload = {
         "exp_id": "hello",
         "subject_id": "01",
