@@ -1,0 +1,53 @@
+{
+  "@jspsych/plugin-call-function": {
+    "esm": "plugins/call-function.js",
+    "sha256_esm": "58d5b20d542b6ee9365feb40003fb52dc7709a9404f3e5eecc2e2e1ef6d704aa",
+    "version": "2.1.0"
+  },
+  "@jspsych/plugin-fullscreen": {
+    "esm": "plugins/fullscreen.js",
+    "sha256_esm": "98943a183ff1409beb0db23f20f5f7acbe9823764be94dd2bb77ec7ffe2878a8",
+    "version": "2.1.0"
+  },
+  "@jspsych/plugin-html-button-response": {
+    "esm": "plugins/html-button-response.js",
+    "sha256_esm": "49117fb90af403df745312b46b0f95a2f179ac94919867c34539753f8870151e",
+    "version": "2.1.0"
+  },
+  "@jspsych/plugin-html-keyboard-response": {
+    "esm": "plugins/html-keyboard-response.js",
+    "sha256_esm": "de5c088bf9c9aa89708c8715158a8256d314c3c1508873cb228648cb6a962233",
+    "version": "2.1.0"
+  },
+  "@jspsych/plugin-image-button-response": {
+    "esm": "plugins/image-button-response.js",
+    "sha256_esm": "184931cc314fe0c7ecc5c534dde7236d3e848564c5fdd9d6164bd0eabc07718a",
+    "version": "2.1.0"
+  },
+  "@jspsych/plugin-image-keyboard-response": {
+    "esm": "plugins/image-keyboard-response.js",
+    "sha256_esm": "0613ec12c9ea15efe851d6e8608a79b88e7605990d47ef19f70360ac0e205d4f",
+    "version": "2.1.0"
+  },
+  "@jspsych/plugin-instructions": {
+    "esm": "plugins/instructions.js",
+    "sha256_esm": "b816c51fcd371433f46bbbf6536120ca990aacbde294a1d941abcaa8140653d6",
+    "version": "2.1.0"
+  },
+  "@jspsych/plugin-preload": {
+    "esm": "plugins/preload.js",
+    "sha256_esm": "2b2c5a89f0aa0e0b22f6be46add04a4ace824eea435cecf364bdbba0f1463957",
+    "version": "2.1.0"
+  },
+  "@jspsych/plugin-survey-text": {
+    "esm": "plugins/survey-text.js",
+    "sha256_esm": "1283ead3b35cd6337696d5b8ed60c56b5ec07acd6b9b6da1149fe4748843794f",
+    "version": "2.1.0"
+  },
+  "jspsych": {
+    "css": "jspsych.css",
+    "esm": "jspsych.js",
+    "sha256_esm": "8449cb0185a8f6b78610c3b7e9654cc826768b2c8bcc36016eecf422d9de4f51",
+    "version": "8.2.3"
+  }
+}
