@@ -1,53 +1,53 @@
 {
   "@jspsych/plugin-call-function": {
     "esm": "plugins/call-function.js",
-    "sha256_esm": "58d5b20d542b6ee9365feb40003fb52dc7709a9404f3e5eecc2e2e1ef6d704aa",
+    "sha256_esm": "d9473f77fd55098e80b637b5b04ea400db3fb4a160ebce35c54a01700c4b70ab",
     "version": "2.1.0"
   },
   "@jspsych/plugin-fullscreen": {
     "esm": "plugins/fullscreen.js",
-    "sha256_esm": "98943a183ff1409beb0db23f20f5f7acbe9823764be94dd2bb77ec7ffe2878a8",
+    "sha256_esm": "08f7731f64b0976c7454d4ba5bcc43deb8ad4b7c2b755d8ae8a23f09358f29b2",
     "version": "2.1.0"
   },
   "@jspsych/plugin-html-button-response": {
     "esm": "plugins/html-button-response.js",
-    "sha256_esm": "49117fb90af403df745312b46b0f95a2f179ac94919867c34539753f8870151e",
+    "sha256_esm": "04e7daf5ca4e76a0aabfa6e8a1902183c2542cfe75a9658b483e1245924ff446",
     "version": "2.1.0"
   },
   "@jspsych/plugin-html-keyboard-response": {
     "esm": "plugins/html-keyboard-response.js",
-    "sha256_esm": "de5c088bf9c9aa89708c8715158a8256d314c3c1508873cb228648cb6a962233",
+    "sha256_esm": "6f34fbaf7638727784a2fa3c31be5446b5de86aaeb373cc80fd4dabc5405338f",
     "version": "2.1.0"
   },
   "@jspsych/plugin-image-button-response": {
     "esm": "plugins/image-button-response.js",
-    "sha256_esm": "184931cc314fe0c7ecc5c534dde7236d3e848564c5fdd9d6164bd0eabc07718a",
+    "sha256_esm": "bda62e0edf0d1902f9b2172fb6e24fa0f0b81d0ee8715497215bc83b014f4126",
     "version": "2.1.0"
   },
   "@jspsych/plugin-image-keyboard-response": {
     "esm": "plugins/image-keyboard-response.js",
-    "sha256_esm": "0613ec12c9ea15efe851d6e8608a79b88e7605990d47ef19f70360ac0e205d4f",
+    "sha256_esm": "7157255af22df8705ec8971f9e95ec6627849939737edb300e95ee918d11d5da",
     "version": "2.1.0"
   },
   "@jspsych/plugin-instructions": {
     "esm": "plugins/instructions.js",
-    "sha256_esm": "b816c51fcd371433f46bbbf6536120ca990aacbde294a1d941abcaa8140653d6",
+    "sha256_esm": "577e53bdd7601477707f7da3cea4f89e84e51374864f9bcf0c18fa9db9f1f7fe",
     "version": "2.1.0"
   },
   "@jspsych/plugin-preload": {
     "esm": "plugins/preload.js",
-    "sha256_esm": "2b2c5a89f0aa0e0b22f6be46add04a4ace824eea435cecf364bdbba0f1463957",
+    "sha256_esm": "35e8938f6433d1bcfdbf0a68bd224af3bfa883ade31f4239f1ba8ad0ae4e81ca",
     "version": "2.1.0"
   },
   "@jspsych/plugin-survey-text": {
     "esm": "plugins/survey-text.js",
-    "sha256_esm": "1283ead3b35cd6337696d5b8ed60c56b5ec07acd6b9b6da1149fe4748843794f",
+    "sha256_esm": "e5256f6594ee531ee36cb8f0f044d78d29da134fd7c0ac39e95a86d9c5a07a98",
     "version": "2.1.0"
   },
   "jspsych": {
     "css": "jspsych.css",
     "esm": "jspsych.js",
-    "sha256_esm": "8449cb0185a8f6b78610c3b7e9654cc826768b2c8bcc36016eecf422d9de4f51",
+    "sha256_esm": "22c26287ebd071ccb4f5ff92cdc82a95334e8dc0976c737da6393473c476df21",
     "version": "8.2.3"
   }
 }
