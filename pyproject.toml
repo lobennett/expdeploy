@@ -1,0 +1,92 @@
+[project]
+name = "expdeploy"
+version = "0.1.0a0"
+description = "Modern Python deploy tool for jsPsych v8 experiments"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Logan Bennett", email = "logben@stanford.edu" }]
+keywords = ["jspsych", "psychology", "cognitive-science", "experiment", "fmri", "bids"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "pydantic>=2.6",
+  "typer>=0.12",
+  "jinja2>=3.1",
+  "filelock>=3.13",
+  "tomli>=2.0 ; python_version < '3.11'",
+  "rich>=13.7",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+  "pytest-asyncio>=0.23",
+  "httpx>=0.27",
+  "hypothesis>=6.98",
+  "playwright>=1.42",
+  "ruff>=0.3",
+  "mypy>=1.9",
+  "pre-commit>=3.6",
+]
+
+[project.scripts]
+expdeploy = "expdeploy.cli:app"
+
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/expdeploy"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/expdeploy/jspsych_assets" = "expdeploy/jspsych_assets"
+"src/expdeploy/templates" = "expdeploy/templates"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "F", "W",      # pycodestyle + pyflakes
+  "I",                # isort
+  "B",                # bugbear
+  "UP",               # pyupgrade
+  "SIM",              # simplify
+  "RUF",              # ruff-specific
+]
+ignore = ["E501"]    # line length handled by formatter
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+files = ["src/expdeploy"]
+
+[[tool.mypy.overrides]]
+module = "tomli.*"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+markers = [
+  "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+  "e2e: end-to-end Playwright tests",
+  "supabase: requires SUPABASE_URL env var",
+]
+asyncio_mode = "auto"
