@@ -116,6 +116,8 @@ def test_post_data_writes_file(app_client):
         "subject_id": "01",
         "trials": [{"trial_type": "html-keyboard-response", "rt": 432}],
         "status": "finished",
+        "started_at": "2026-05-15T10:00:00+00:00",
+        "ended_at": "2026-05-15T10:01:00+00:00",
     }
     response = client.post("/api/data", json=payload)
     assert response.status_code == 200
@@ -125,6 +127,8 @@ def test_post_data_writes_file(app_client):
     assert saved_path.exists()
     saved = json.loads(saved_path.read_text())
     assert saved["trials"][0]["rt"] == 432
+    assert saved["run_id"]  # ULID present
+    assert saved["status"] == "finished"
 
 
 def test_post_data_rejects_invalid_subject(app_client):
@@ -134,6 +138,8 @@ def test_post_data_rejects_invalid_subject(app_client):
         "subject_id": "../oops",
         "trials": [],
         "status": "finished",
+        "started_at": "2026-05-15T10:00:00+00:00",
+        "ended_at": "2026-05-15T10:01:00+00:00",
     }
     response = client.post("/api/data", json=payload)
     assert response.status_code == 422

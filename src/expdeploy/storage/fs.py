@@ -62,7 +62,7 @@ class FSAdapter:
             path = subject_dir / filename
             payload = {
                 "saved_at_utc": datetime.now(UTC).isoformat(),
-                **record.raw_payload,
+                **record.model_dump(mode="json"),
             }
             # Atomic write
             tmp = path.with_suffix(path.suffix + ".tmp")

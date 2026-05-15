@@ -96,9 +96,19 @@ def create_app(config: AppConfig) -> FastAPI:
                 subject_id=payload.get("subject_id") or config.subject_id,
                 session_num=payload.get("session_num") or config.session_num,
                 run_num=payload.get("run_num") or config.run_num,
+                started_at=payload["started_at"],
+                ended_at=payload["ended_at"],
+                status=payload.get("status", "finished"),
+                trials=payload.get("trials", []),
+                interaction_data=payload.get("interaction_data", []),
+                jspsych_version=payload.get("jspsych_version"),
+                deploy_version=payload.get("deploy_version"),
+                client_user_agent=payload.get("client_user_agent"),
                 raw_payload=payload,
             )
-        except Exception as exc:  # Pydantic ValidationError surfaces here
+        except (
+            Exception
+        ) as exc:  # Pydantic ValidationError or KeyError on missing started_at/ended_at
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         result = config.storage.save(record)
         if not result.ok:
