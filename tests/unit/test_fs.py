@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -11,13 +12,35 @@ from expdeploy.storage.base import RunRecord
 from expdeploy.storage.fs import FSAdapter
 
 
-def _record(exp_id: str = "hello", subject_id: str = "01") -> RunRecord:
+def _record(
+    exp_id: str = "hello",
+    subject_id: str = "01",
+    session_num: str | None = None,
+    run_num: str | None = None,
+    trials: list | None = None,
+) -> RunRecord:
     return RunRecord(
         exp_id=exp_id,
         subject_id=subject_id,
-        session_num=None,
-        run_num=None,
-        raw_payload={"trials": [{"trial_type": "html-keyboard-response", "rt": 250}]},
+        session_num=session_num,
+        run_num=run_num,
+        started_at=datetime(2026, 5, 15, 10, 0, 0, tzinfo=UTC),
+        ended_at=datetime(2026, 5, 15, 10, 1, 0, tzinfo=UTC),
+        status="finished",
+        trials=(
+            trials
+            if trials is not None
+            else [
+                {"trial_type": "html-keyboard-response", "rt": 250},
+            ]
+        ),
+        raw_payload={
+            "trials": trials
+            if trials is not None
+            else [
+                {"trial_type": "html-keyboard-response", "rt": 250},
+            ]
+        },
     )
 
 
@@ -48,6 +71,10 @@ def test_save_with_session_and_run(tmp_path):
         subject_id="01",
         session_num="1",
         run_num="2",
+        started_at=datetime(2026, 5, 15, 10, 0, 0, tzinfo=UTC),
+        ended_at=datetime(2026, 5, 15, 10, 1, 0, tzinfo=UTC),
+        status="finished",
+        trials=[{"trial_type": "html-keyboard-response", "rt": 250}],
         raw_payload={"trials": []},
     )
     result = adapter.save(record)
