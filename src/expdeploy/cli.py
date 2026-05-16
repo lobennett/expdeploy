@@ -158,7 +158,8 @@ def run(
         # Battery mode: from manifest OR inline --exps
         if target is not None:
             battery = load_battery(target)
-            exp_paths = [(e.exp_id, Path(e.path)) for e in battery.experiments]
+            battery_dir = target.resolve().parent
+            exp_paths = [(e.exp_id, (battery_dir / e.path).resolve()) for e in battery.experiments]
         else:
             assert exps is not None
             paths = [Path(p).expanduser().resolve() for p in exps.split(",") if p.strip()]
