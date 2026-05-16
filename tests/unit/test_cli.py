@@ -241,3 +241,9 @@ def test_status_lists_runs(tmp_path):
     assert result.exit_code == 0
     assert "flanker" in result.stdout
     assert "01" in result.stdout
+
+
+def test_sync_stub_says_no_remote(tmp_path):
+    result = runner.invoke(app, ["sync", "--adapter", "supabase"])
+    assert result.exit_code == 0
+    assert "no remote adapter" in result.stdout.lower() or "plan 3" in result.stdout.lower()

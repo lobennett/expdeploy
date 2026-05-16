@@ -243,6 +243,18 @@ def status(
     Console().print(table)
 
 
+@app.command()
+def sync(
+    adapter: Annotated[str, typer.Option("--adapter")] = "",
+    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    _data_dir: Annotated[Path, typer.Option("--data-dir")] = Path("./data"),
+) -> None:
+    """Replay failed remote-storage writes. (Remote adapters land in Plan 3.)"""
+    typer.echo(
+        f"No remote adapter '{adapter or '<unset>'}' available yet. " "Remote sync ships in Plan 3."
+    )
+
+
 @init_app.command("experiment")
 def init_experiment(
     target: Annotated[Path, typer.Argument(help="Directory to create")],
