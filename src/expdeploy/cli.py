@@ -25,6 +25,8 @@ from expdeploy.storage.fs import FSAdapter
 from expdeploy.storage.sqlite import SQLiteCatalog
 
 app = typer.Typer(no_args_is_help=True, help="expdeploy — deploy jsPsych v8 experiments.")
+init_app = typer.Typer(help="Scaffold a new experiment or battery.")
+app.add_typer(init_app, name="init")
 
 
 @app.command()
@@ -204,3 +206,86 @@ def run(
     if not no_browser:
         webbrowser.open(url)
     uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="info")
+
+
+@init_app.command("experiment")
+def init_experiment(
+    target: Annotated[Path, typer.Argument(help="Directory to create")],
+    task: Annotated[str, typer.Option("--task", help="BIDS task label (alphanumeric)")] = "task",
+    type_: Annotated[str, typer.Option("--type", help="behavioral | fmri | none")] = "none",
+) -> None:
+    target.mkdir(parents=True, exist_ok=False)
+    manifest_lines = [
+        "[experiment]",
+        f'exp_id = "{task}"',
+        f'name = "{task.capitalize()}"',
+        'version = "0.1.0"',
+        'entry = "index.js"',
+        'style = "style.css"',
+        "",
+        "[jspsych]",
+        'version = "8.2.3"',
+        'plugins = ["@jspsych/plugin-html-keyboard-response@2.1.0"]',
+    ]
+    if type_ in ("behavioral", "fmri"):
+        manifest_lines += [
+            "",
+            "[bids]",
+            f'type = "{type_}"',
+            f'task = "{task}"',
+        ]
+    (target / "manifest.toml").write_text("\n".join(manifest_lines) + "\n")
+    (target / "index.js").write_text(
+        """import { initJsPsych } from "jspsych";
+import htmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
+
+export default function build() {
+  const startedAt = new Date().toISOString();
+  const jsPsych = initJsPsych({
+    on_finish: () => {
+      window.expdeploy.submit({
+        exp_id: window.expdeploy.expId,
+        subject_id: window.expdeploy.subjectId,
+        started_at: startedAt,
+        ended_at: new Date().toISOString(),
+        trials: jsPsych.data.get().values(),
+        status: "finished",
+      });
+    },
+  });
+  jsPsych.run([
+    { type: htmlKeyboardResponse, stimulus: "<h1>"""
+        + task
+        + """</h1><p>Press any key.</p>" },
+  ]);
+}
+"""
+    )
+    (target / "style.css").write_text(
+        "body { font-family: system-ui, sans-serif; text-align: center; margin-top: 4em; }\n"
+    )
+    typer.echo(f"Created {target}")
+
+
+@init_app.command("battery")
+def init_battery(
+    target: Annotated[Path, typer.Argument(help="Directory to create")],
+    experiments: Annotated[
+        str, typer.Option("--experiments", help="Comma-delimited experiment dirs")
+    ],
+    counterbalance: Annotated[str, typer.Option("--counterbalance")] = "latin_square",
+) -> None:
+    target.mkdir(parents=True, exist_ok=False)
+    paths = [Path(p).expanduser().resolve() for p in experiments.split(",") if p.strip()]
+    rows: list[str] = []
+    for p in paths:
+        loaded = ExperimentLoader().load(p)
+        eid = loaded.manifest.experiment.exp_id
+        rows.append(f'[[experiments]]\nexp_id = "{eid}"\npath = "{p}"\n')
+    body = (
+        "[battery]\n"
+        f'name = "{target.name}"\n'
+        f'counterbalance = "{counterbalance}"\n\n' + "\n".join(rows)
+    )
+    (target / "battery.toml").write_text(body)
+    typer.echo(f"Created {target / 'battery.toml'}")

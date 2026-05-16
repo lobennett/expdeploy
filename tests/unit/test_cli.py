@@ -171,3 +171,43 @@ def test_run_command_with_inline_exps(tmp_path):
         )
     assert result.exit_code == 0, result.stdout
     assert mock_uvicorn.run.called
+
+
+def test_init_experiment_creates_files(tmp_path):
+    target = tmp_path / "newexp"
+    result = runner.invoke(app, ["init", "experiment", str(target), "--task", "flanker"])
+    assert result.exit_code == 0
+    assert (target / "manifest.toml").exists()
+    assert (target / "index.js").exists()
+    assert (target / "style.css").exists()
+    manifest_text = (target / "manifest.toml").read_text()
+    assert 'exp_id = "flanker"' in manifest_text
+
+
+def test_init_battery_creates_battery_toml(tmp_path):
+    # Set up two experiments to reference
+    for exp_id in ["flanker", "stroop"]:
+        exp_dir = tmp_path / exp_id
+        exp_dir.mkdir()
+        (exp_dir / "manifest.toml").write_text(
+            HELLO_TOML.replace('exp_id = "hello"', f'exp_id = "{exp_id}"')
+        )
+        (exp_dir / "index.js").write_text("export default () => {};")
+
+    out = tmp_path / "my_battery"
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "battery",
+            str(out),
+            "--experiments",
+            f"{tmp_path / 'flanker'},{tmp_path / 'stroop'}",
+        ],
+    )
+    assert result.exit_code == 0
+    bt = out / "battery.toml"
+    assert bt.exists()
+    text = bt.read_text()
+    assert "flanker" in text
+    assert "stroop" in text
