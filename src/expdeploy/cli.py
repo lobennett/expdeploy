@@ -208,6 +208,41 @@ def run(
     uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="info")
 
 
+@app.command()
+def status(
+    data_dir: Annotated[Path, typer.Option("--data-dir")] = Path("./data"),
+    subject: Annotated[str | None, typer.Option("--subject")] = None,
+    limit: Annotated[int, typer.Option("--limit")] = 25,
+) -> None:
+    """Show recent runs from the SQLite catalog."""
+    from rich.console import Console
+    from rich.table import Table
+
+    catalog = SQLiteCatalog(db_path=data_dir / "catalog.sqlite")
+    if not catalog.db_path.exists():
+        typer.echo("no runs (catalog not yet created)")
+        return
+    catalog.init_schema()
+    rows = (
+        catalog.runs_for_subject(subject)[:limit] if subject else catalog.recent_runs(limit=limit)
+    )
+    if not rows:
+        typer.echo("no runs")
+        return
+    table = Table(title=f"Recent runs ({len(rows)})")
+    for col in ("started_at", "subject_id", "exp_id", "status", "run_id"):
+        table.add_column(col)
+    for row in rows:
+        table.add_row(
+            str(row["started_at"]),
+            str(row["subject_id"]),
+            str(row["exp_id"]),
+            str(row["status"]),
+            str(row["run_id"]),
+        )
+    Console().print(table)
+
+
 @init_app.command("experiment")
 def init_experiment(
     target: Annotated[Path, typer.Argument(help="Directory to create")],

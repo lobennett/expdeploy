@@ -211,3 +211,33 @@ def test_init_battery_creates_battery_toml(tmp_path):
     text = bt.read_text()
     assert "flanker" in text
     assert "stroop" in text
+
+
+def test_status_with_empty_catalog(tmp_path):
+    result = runner.invoke(app, ["status", "--data-dir", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "no runs" in result.stdout.lower() or "0 runs" in result.stdout
+
+
+def test_status_lists_runs(tmp_path):
+    from datetime import UTC
+    from datetime import datetime as dt
+
+    from expdeploy.storage.base import RunRecord
+    from expdeploy.storage.sqlite import SQLiteCatalog
+
+    catalog = SQLiteCatalog(db_path=tmp_path / "catalog.sqlite")
+    catalog.init_schema()
+    catalog.save(
+        RunRecord(
+            exp_id="flanker",
+            subject_id="01",
+            started_at=dt(2026, 5, 15, tzinfo=UTC),
+            ended_at=dt(2026, 5, 15, 0, 5, tzinfo=UTC),
+            status="finished",
+        )
+    )
+    result = runner.invoke(app, ["status", "--data-dir", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "flanker" in result.stdout
+    assert "01" in result.stdout
