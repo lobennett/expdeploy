@@ -99,3 +99,75 @@ def test_run_command_rejects_busy_port(tmp_path):
         assert "busy" in out.lower() or "in use" in out.lower()
     finally:
         sock.close()
+
+
+def test_run_command_with_battery_manifest(tmp_path):
+    # Build mini battery: 2 experiments + battery.toml
+    for exp_id in ["ea", "eb"]:
+        exp_dir = tmp_path / exp_id
+        exp_dir.mkdir()
+        (exp_dir / "manifest.toml").write_text(
+            HELLO_TOML.replace('exp_id = "hello"', f'exp_id = "{exp_id}"')
+        )
+        (exp_dir / "index.js").write_text("export default () => {};")
+
+    (tmp_path / "battery.toml").write_text(
+        f"""
+[battery]
+name = "test"
+counterbalance = "latin_square"
+
+[[experiments]]
+exp_id = "ea"
+path = "{tmp_path / "ea"}"
+
+[[experiments]]
+exp_id = "eb"
+path = "{tmp_path / "eb"}"
+"""
+    )
+
+    with patch("expdeploy.cli.uvicorn") as mock_uvicorn:
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                str(tmp_path / "battery.toml"),
+                "--subject",
+                "0",
+                "--port",
+                "9095",
+                "--no-browser",
+            ],
+        )
+    assert result.exit_code == 0, result.stdout
+    assert mock_uvicorn.run.called
+
+
+def test_run_command_with_inline_exps(tmp_path):
+    for exp_id in ["ea", "eb"]:
+        exp_dir = tmp_path / exp_id
+        exp_dir.mkdir()
+        (exp_dir / "manifest.toml").write_text(
+            HELLO_TOML.replace('exp_id = "hello"', f'exp_id = "{exp_id}"')
+        )
+        (exp_dir / "index.js").write_text("export default () => {};")
+
+    with patch("expdeploy.cli.uvicorn") as mock_uvicorn:
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                "--exps",
+                f"{tmp_path / 'ea'},{tmp_path / 'eb'}",
+                "--counterbalance",
+                "fixed",
+                "--subject",
+                "01",
+                "--port",
+                "9096",
+                "--no-browser",
+            ],
+        )
+    assert result.exit_code == 0, result.stdout
+    assert mock_uvicorn.run.called
