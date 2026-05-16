@@ -24,7 +24,7 @@ def test_fixed_does_not_mutate_input():
     s = FixedStrategy()
     out = s.order_for("01", EXPS)
     out.append("extra")
-    assert ["flanker", "stroop", "nback"] == EXPS
+    assert EXPS == ["flanker", "stroop", "nback"]
 
 
 def test_latin_square_rotates_by_subject():
@@ -78,7 +78,7 @@ def test_seeded_random_differs_across_subjects():
 def test_user_supplied_returns_csv_row(tmp_path):
     csv_path = tmp_path / "orders.csv"
     csv_path.write_text(
-        "subject_id,pos_1,pos_2,pos_3\n" "01,nback,flanker,stroop\n" "02,stroop,nback,flanker\n"
+        "subject_id,pos_1,pos_2,pos_3\n01,nback,flanker,stroop\n02,stroop,nback,flanker\n"
     )
     s = UserSuppliedStrategy(order_csv=csv_path)
     assert s.order_for("01", EXPS) == ["nback", "flanker", "stroop"]

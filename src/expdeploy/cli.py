@@ -252,7 +252,7 @@ def sync(
 ) -> None:
     """Replay failed remote-storage writes. (Remote adapters land in Plan 3.)"""
     typer.echo(
-        f"No remote adapter '{adapter or '<unset>'}' available yet. " "Remote sync ships in Plan 3."
+        f"No remote adapter '{adapter or '<unset>'}' available yet. Remote sync ships in Plan 3."
     )
 
 

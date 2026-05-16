@@ -211,7 +211,7 @@ def test_battery_state_endpoint(battery_client):
 
 
 def test_battery_post_data_advances(battery_client):
-    client, data_dir, catalog = battery_client
+    client, _data_dir, catalog = battery_client
     payload = {
         "exp_id": "ea",
         "subject_id": "01",
