@@ -76,12 +76,14 @@ def run(
     from expdeploy import jspsych_assets
 
     config = AppConfig(
-        experiment=experiment,
         vendored_root=Path(jspsych_assets.__file__).resolve().parent,
         storage=FSAdapter(data_dir=data_dir),
+        catalog=None,
+        state_dir=data_dir / "state",
         subject_id=subject,
         session_num=session,
         run_num=run_num,
+        experiment=experiment,
     )
     fastapi_app = create_app(config)
 
