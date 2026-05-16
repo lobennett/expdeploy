@@ -1,0 +1,11 @@
+[battery]
+name = "Mini battery (flanker + stroop)"
+counterbalance = "fixed"
+
+[[experiments]]
+exp_id = "flanker"
+path = "./flanker"
+
+[[experiments]]
+exp_id = "stroop"
+path = "./stroop"

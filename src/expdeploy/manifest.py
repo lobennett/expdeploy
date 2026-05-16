@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import tomllib
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -79,3 +79,49 @@ def load_manifest(path: Path) -> ExperimentManifest:
     with path.open("rb") as fp:
         data = tomllib.load(fp)
     return ExperimentManifest.model_validate(data)
+
+
+CounterbalanceName = Literal["fixed", "latin_square", "seeded_random", "user_supplied"]
+
+
+class BatteryBreakConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    duration_seconds: int = Field(ge=0)
+    message: str = ""
+
+
+class BatteryBreaks(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    between_each: BatteryBreakConfig | None = None
+
+
+class BatteryInfo(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    counterbalance: CounterbalanceName = "fixed"
+    order_csv: str | None = None
+
+
+class BatteryExperimentRef(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    exp_id: str = Field(pattern=r"^[a-zA-Z0-9_-]+$", max_length=128)
+    path: str
+
+
+class BatteryManifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    battery: BatteryInfo
+    experiments: list[BatteryExperimentRef]
+    breaks: BatteryBreaks | None = None
+
+
+def load_battery(path: Path) -> BatteryManifest:
+    """Read a battery.toml from disk and return a validated BatteryManifest."""
+    with path.open("rb") as fp:
+        data = tomllib.load(fp)
+    return BatteryManifest.model_validate(data)

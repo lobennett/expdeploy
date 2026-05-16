@@ -2,6 +2,7 @@ import { initJsPsych } from "jspsych";
 import htmlKeyboardResponse from "@jspsych/plugin-html-keyboard-response";
 
 export default function build() {
+  const startedAt = new Date().toISOString();
   const jsPsych = initJsPsych({
     display_element: "jspsych-target",
     on_finish: () => {
@@ -11,6 +12,8 @@ export default function build() {
         session_num: window.expdeploy.sessionNum,
         run_num: window.expdeploy.runNum,
         deploy_version: window.expdeploy.deployVersion,
+        started_at: startedAt,
+        ended_at: new Date().toISOString(),
         trials: jsPsych.data.get().values(),
         status: "finished",
       };

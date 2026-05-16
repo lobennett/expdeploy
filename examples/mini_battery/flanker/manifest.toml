@@ -1,0 +1,11 @@
+[experiment]
+exp_id = "flanker"
+name = "Flanker"
+version = "1.0.0"
+entry = "index.js"
+estimated_minutes = 1
+
+[jspsych]
+version = "8.2.3"
+plugins = ["@jspsych/plugin-html-keyboard-response@2.1.0"]
+init = { display_element = "jspsych-target" }
