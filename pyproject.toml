@@ -55,6 +55,7 @@ packages = ["src/expdeploy"]
 [tool.hatch.build.targets.wheel.force-include]
 "src/expdeploy/jspsych_assets" = "expdeploy/jspsych_assets"
 "src/expdeploy/templates" = "expdeploy/templates"
+"src/expdeploy/storage/supabase_schema.sql" = "expdeploy/storage/supabase_schema.sql"
 
 [tool.ruff]
 target-version = "py311"

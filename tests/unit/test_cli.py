@@ -245,3 +245,19 @@ def test_sync_stub_says_no_remote(tmp_path):
     result = runner.invoke(app, ["sync", "--adapter", "supabase"])
     assert result.exit_code == 0
     assert "no remote adapter" in result.stdout.lower() or "plan 3" in result.stdout.lower()
+
+
+def test_supabase_migrate_without_env_fails(monkeypatch):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    result = runner.invoke(app, ["supabase", "migrate"])
+    assert result.exit_code != 0
+    err = (result.stderr or "") + (result.stdout or "")
+    assert "SUPABASE_URL" in err or "service_role" in err.lower()
+
+
+def test_supabase_test_connection_without_env_fails(monkeypatch):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    result = runner.invoke(app, ["supabase", "test-connection"])
+    assert result.exit_code != 0

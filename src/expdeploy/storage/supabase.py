@@ -6,6 +6,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from expdeploy.storage.base import RunRecord, SaveResult
@@ -62,6 +63,23 @@ class SupabaseAdapter:
 
             self._client = create_client(self.config.url, self.config.service_role_key)
         return self._client
+
+    def apply_migrations(self) -> None:
+        """Apply idempotent DDL via the Postgres-meta REST endpoint (psql-like)."""
+        schema_path = Path(__file__).resolve().parent / "supabase_schema.sql"
+        sql = schema_path.read_text()
+        client = self._get_client()
+        # Supabase client's `postgrest` doesn't expose raw SQL; use the RPC `exec_sql` if
+        # the project has it, otherwise instruct the user to apply via SQL editor.
+        try:
+            client.postgrest.rpc("exec_sql", {"sql": sql}).execute()
+        except Exception as exc:
+            # Fallback: print SQL for manual application
+            msg = (
+                f"Could not apply DDL automatically ({exc}). "
+                f"Run the SQL at {schema_path} via the Supabase SQL editor."
+            )
+            raise RuntimeError(msg) from exc
 
     def save(self, record: RunRecord) -> SaveResult:
         try:

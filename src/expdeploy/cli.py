@@ -28,6 +28,66 @@ app = typer.Typer(no_args_is_help=True, help="expdeploy — deploy jsPsych v8 ex
 init_app = typer.Typer(help="Scaffold a new experiment or battery.")
 app.add_typer(init_app, name="init")
 
+supabase_app = typer.Typer(help="Manage Supabase remote adapter.")
+app.add_typer(supabase_app, name="supabase")
+
+
+@supabase_app.command("migrate")
+def supabase_migrate() -> None:
+    """Apply idempotent DDL to the configured Supabase Postgres."""
+    try:
+        from expdeploy.storage.supabase import SupabaseAdapter, SupabaseConfig
+
+        cfg = SupabaseConfig.from_env()
+        adapter = SupabaseAdapter(config=cfg)
+        adapter.apply_migrations()
+    except Exception as exc:
+        typer.echo(f"Migration failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    typer.echo("Schema applied.")
+
+
+@supabase_app.command("test-connection")
+def supabase_test_connection() -> None:
+    """Verify the configured Supabase credentials and bucket access."""
+    try:
+        from expdeploy.storage.supabase import SupabaseAdapter, SupabaseConfig
+
+        cfg = SupabaseConfig.from_env()
+        adapter = SupabaseAdapter(config=cfg)
+        client = adapter._get_client()
+        # A trivial read against the configured schema.
+        client.schema(cfg.schema).table("runs").select("run_id").limit(1).execute()
+        typer.echo(f"Connected to {cfg.url} (schema={cfg.schema}, bucket={cfg.bucket}).")
+    except Exception as exc:
+        typer.echo(f"Connection failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+
+@supabase_app.command("drop")
+def supabase_drop(
+    confirm: Annotated[
+        bool, typer.Option("--confirm", help="Required for destructive operation")
+    ] = False,
+) -> None:
+    """DROP the expdeploy schema. Test envs only."""
+    if not confirm:
+        typer.echo("Refusing without --confirm.", err=True)
+        raise typer.Exit(code=2)
+    try:
+        from expdeploy.storage.supabase import SupabaseAdapter, SupabaseConfig
+
+        cfg = SupabaseConfig.from_env()
+        adapter = SupabaseAdapter(config=cfg)
+        client = adapter._get_client()
+        client.postgrest.rpc(
+            "exec_sql", {"sql": f"DROP SCHEMA IF EXISTS {cfg.schema} CASCADE;"}
+        ).execute()
+        typer.echo(f"Dropped schema {cfg.schema}.")
+    except Exception as exc:
+        typer.echo(f"Drop failed: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
 
 @app.command()
 def version() -> None:
