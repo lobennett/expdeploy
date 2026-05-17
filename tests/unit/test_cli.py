@@ -45,7 +45,7 @@ def test_validate_missing_manifest(tmp_path):
     exp_dir.mkdir()
     result = runner.invoke(app, ["validate", str(exp_dir)])
     assert result.exit_code != 0
-    assert "manifest.toml" in result.stdout or "manifest.toml" in str(result.exception)
+    assert "manifest.toml" in result.stderr or "manifest.toml" in str(result.exception)
 
 
 def test_validate_bad_bids_task_label(tmp_path):
@@ -94,9 +94,7 @@ def test_run_command_rejects_busy_port(tmp_path):
             ["run", str(exp_dir), "--subject", "01", "--port", str(busy_port), "--no-browser"],
         )
         assert result.exit_code != 0
-        # Look for the suggested-next-port hint (could be in stdout OR stderr depending on err=True flag)
-        out = (result.stdout or "") + (result.stderr or "")
-        assert "busy" in out.lower() or "in use" in out.lower()
+        assert "busy" in (result.stderr or "").lower() or "in use" in (result.stderr or "").lower()
     finally:
         sock.close()
 

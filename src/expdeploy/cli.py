@@ -43,7 +43,7 @@ def validate(
     try:
         ExperimentLoader().load(path)
     except Exception as exc:
-        typer.echo(f"INVALID: {exc}")
+        typer.echo(f"INVALID: {exc}", err=True)
         raise typer.Exit(code=1) from exc
     typer.echo("ok")
 
@@ -115,14 +115,14 @@ def run(
 ) -> None:
     """Serve an experiment or battery on a local port."""
     if not subject:
-        typer.echo("--subject is required")
+        typer.echo("--subject is required", err=True)
         raise typer.Exit(code=2)
 
     if target is None and not exps:
-        typer.echo("provide either a target path or --exps a,b,c")
+        typer.echo("provide either a target path or --exps a,b,c", err=True)
         raise typer.Exit(code=2)
     if target is not None and exps:
-        typer.echo("cannot combine target path and --exps")
+        typer.echo("cannot combine target path and --exps", err=True)
         raise typer.Exit(code=2)
 
     if not _port_is_free(port):
@@ -130,7 +130,7 @@ def run(
         msg = f"Port {port} is in use."
         if suggestion is not None:
             msg += f" Try --port {suggestion}."
-        typer.echo(msg)
+        typer.echo(msg, err=True)
         raise typer.Exit(code=2)
 
     from expdeploy import jspsych_assets
