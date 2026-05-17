@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import os
 import socket
+import subprocess
 import webbrowser
 from pathlib import Path
 from typing import Annotated, Any
@@ -398,6 +400,101 @@ def sync(
     typer.echo(f"Synced {ok_count} / Failed {fail_count}.")
     if fail_count:
         raise typer.Exit(code=1)
+
+
+@app.command()
+def build(
+    target: Annotated[
+        Path, typer.Argument(exists=True, help="Path to battery.toml or experiment dir")
+    ],
+    tag: Annotated[
+        str, typer.Option("--tag", help="OCI image tag, e.g. ghcr.io/you/study:2026-05-17")
+    ],
+    base_tag: Annotated[
+        str, typer.Option("--base-tag", help="Base image tag to FROM")
+    ] = "ghcr.io/lobennett/expdeploy:latest",
+    engine: Annotated[str, typer.Option("--engine", help="docker | podman")] = "docker",
+    push: Annotated[bool, typer.Option("--push/--no-push")] = False,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", help="Where to write study.Dockerfile (default: next to target)"),
+    ] = None,
+) -> None:
+    """Build a study-specific OCI image with experiments baked in."""
+    target = target.resolve()
+    if target.is_file() and target.suffix == ".toml":
+        battery = load_battery(target)
+        battery_dir = target.parent
+        copies = [
+            (
+                e.exp_id,
+                Path(e.path) if Path(e.path).is_absolute() else (battery_dir / e.path).resolve(),
+            )
+            for e in battery.experiments
+        ]
+        battery_file = target.name
+    elif target.is_dir() and (target / "manifest.toml").exists():
+        loaded = ExperimentLoader().load(target)
+        battery = None
+        copies = [(loaded.manifest.experiment.exp_id, target)]
+        battery_file = None
+        battery_dir = target.parent
+    else:
+        typer.echo(f"{target} is neither battery.toml nor an experiment dir", err=True)
+        raise typer.Exit(code=2)
+
+    # Validate each experiment
+    for _eid, p in copies:
+        ExperimentLoader().load(p)
+
+    # Compute manifest hash (content provenance label)
+    h = hashlib.sha256()
+    for _eid, p in copies:
+        for f in sorted(p.rglob("*")):
+            if f.is_file():
+                h.update(f.read_bytes())
+    if battery_file:
+        h.update((battery_dir / battery_file).read_bytes())
+    manifest_hash = h.hexdigest()[:16]
+
+    # Build the Dockerfile body
+    lines = [f"FROM {base_tag}"]
+    for eid, p in copies:
+        # Use COPY <relative-to-Dockerfile> /experiments/<eid>
+        rel = p.relative_to(battery_dir) if p.is_relative_to(battery_dir) else p
+        lines.append(f"COPY ./{rel} /experiments/{eid}")
+    if battery_file:
+        lines.append(f"COPY ./{battery_file} /experiments/{battery_file}")
+        lines.append(f"ENV EXPDEPLOY_BATTERY=/experiments/{battery_file}")
+        cmd = f'CMD ["run", "/experiments/{battery_file}"]'
+    else:
+        eid = copies[0][0]
+        cmd = f'CMD ["run", "/experiments/{eid}"]'
+    lines.append(f'LABEL org.expdeploy.manifest_hash="{manifest_hash}"')
+    lines.append(f'LABEL org.expdeploy.deploy_version="{__version__}"')
+    lines.append(cmd)
+
+    dockerfile_path = (output if output else (battery_dir / "study.Dockerfile")).resolve()
+    dockerfile_path.write_text("\n".join(lines) + "\n")
+    typer.echo(f"Wrote {dockerfile_path}")
+
+    # Invoke the engine
+    build_cmd = [engine, "build", "-f", str(dockerfile_path), "-t", tag, str(battery_dir)]
+    typer.echo(" ".join(build_cmd))
+    proc = subprocess.run(build_cmd, check=False)
+    if proc.returncode != 0:
+        typer.echo(f"{engine} build failed (exit {proc.returncode})", err=True)
+        raise typer.Exit(code=proc.returncode)
+
+    if push:
+        push_cmd = [engine, "push", tag]
+        typer.echo(" ".join(push_cmd))
+        proc = subprocess.run(push_cmd, check=False)
+        if proc.returncode != 0:
+            typer.echo(f"{engine} push failed (exit {proc.returncode})", err=True)
+            raise typer.Exit(code=proc.returncode)
+
+    typer.echo(f"Built {tag}")
 
 
 @init_app.command("experiment")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -262,3 +262,88 @@ def test_supabase_test_connection_without_env_fails(monkeypatch):
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
     result = runner.invoke(app, ["supabase", "test-connection"])
     assert result.exit_code != 0
+
+
+def test_build_generates_dockerfile(tmp_path, monkeypatch):
+    # Build manifests + battery
+    for exp_id in ["flanker", "stroop"]:
+        d = tmp_path / exp_id
+        d.mkdir()
+        (d / "manifest.toml").write_text(
+            HELLO_TOML.replace('exp_id = "hello"', f'exp_id = "{exp_id}"')
+        )
+        (d / "index.js").write_text("export default () => {};")
+    (tmp_path / "battery.toml").write_text(
+        """[battery]
+name = "study2026"
+counterbalance = "fixed"
+
+[[experiments]]
+exp_id = "flanker"
+path = "./flanker"
+
+[[experiments]]
+exp_id = "stroop"
+path = "./stroop"
+"""
+    )
+    # Mock subprocess.run so we don't actually invoke docker
+    with patch("expdeploy.cli.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        result = runner.invoke(
+            app,
+            [
+                "build",
+                str(tmp_path / "battery.toml"),
+                "--tag",
+                "ghcr.io/lobennett/study2026:test",
+                "--engine",
+                "podman",
+                "--no-push",
+            ],
+        )
+    assert result.exit_code == 0, result.stdout
+    dockerfile = tmp_path / "study.Dockerfile"
+    assert dockerfile.exists()
+    body = dockerfile.read_text()
+    assert "FROM ghcr.io/lobennett/expdeploy:" in body
+    assert "COPY ./flanker" in body
+    assert "COPY ./stroop" in body
+    assert "COPY ./battery.toml" in body
+
+
+def test_build_invokes_engine(tmp_path):
+    d = tmp_path / "exp"
+    d.mkdir()
+    (d / "manifest.toml").write_text(HELLO_TOML.replace('exp_id = "hello"', 'exp_id = "single"'))
+    (d / "index.js").write_text("export default () => {};")
+    (tmp_path / "battery.toml").write_text(
+        """[battery]
+name = "x"
+counterbalance = "fixed"
+
+[[experiments]]
+exp_id = "single"
+path = "./exp"
+"""
+    )
+    with patch("expdeploy.cli.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        result = runner.invoke(
+            app,
+            [
+                "build",
+                str(tmp_path / "battery.toml"),
+                "--tag",
+                "t:1",
+                "--engine",
+                "podman",
+                "--no-push",
+            ],
+        )
+    assert result.exit_code == 0
+    # Confirm the engine got called with build + -t
+    calls = [c.args[0] for c in mock_run.call_args_list]
+    build_calls = [c for c in calls if "build" in c]
+    assert build_calls, "expected at least one engine build call"
+    assert any("t:1" in c for c in build_calls)
