@@ -58,8 +58,6 @@ build-backend = "hatchling.build"
 packages = ["src/expdeploy"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/expdeploy/jspsych_assets" = "expdeploy/jspsych_assets"
-"src/expdeploy/templates" = "expdeploy/templates"
 "src/expdeploy/storage/supabase_schema.sql" = "expdeploy/storage/supabase_schema.sql"
 
 [tool.ruff]
@@ -85,6 +83,10 @@ quote-style = "double"
 strict = true
 python_version = "3.11"
 files = ["src/expdeploy"]
+
+[[tool.mypy.overrides]]
+module = "supabase.*"
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config"
