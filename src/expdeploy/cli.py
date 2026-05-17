@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import socket
 import webbrowser
 from pathlib import Path
@@ -275,7 +276,8 @@ def run(
         )
 
     fastapi_app = create_app(config)
-    url = f"http://127.0.0.1:{port}/"
+    host = os.environ.get("EXPDEPLOY_HOST", "127.0.0.1")
+    url = f"http://{host}:{port}/"
     if config.is_battery():
         assert config.battery_manifest is not None
         label = f"battery {config.battery_manifest.battery.name}"
@@ -285,7 +287,7 @@ def run(
     typer.echo(f"Serving {label} at {url}")
     if not no_browser:
         webbrowser.open(url)
-    uvicorn.run(fastapi_app, host="127.0.0.1", port=port, log_level="info")
+    uvicorn.run(fastapi_app, host=host, port=port, log_level="info")
 
 
 @app.command()
