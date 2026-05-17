@@ -173,6 +173,10 @@ def run(
     data_dir: Annotated[Path, typer.Option("--data-dir")] = Path("./data"),
     port: Annotated[int, typer.Option("--port")] = 8080,
     no_browser: Annotated[bool, typer.Option("--no-browser")] = False,
+    remote: Annotated[
+        list[str] | None,
+        typer.Option("--remote", help="Remote adapter name(s) to mirror data (e.g. supabase)"),
+    ] = None,
 ) -> None:
     """Serve an experiment or battery on a local port."""
     if not subject:
@@ -202,6 +206,18 @@ def run(
     catalog.init_schema()
     state_dir = data_dir / "state"
 
+    from expdeploy.storage.base import StorageAdapter
+
+    remotes_list: list[StorageAdapter] = []
+    for r in remote or []:
+        if r == "supabase":
+            from expdeploy.storage.supabase import SupabaseAdapter, SupabaseConfig
+
+            remotes_list.append(SupabaseAdapter(config=SupabaseConfig.from_env()))
+        else:
+            typer.echo(f"Unknown --remote adapter: {r}", err=True)
+            raise typer.Exit(code=2)
+
     if target is not None and _classify_target(target) == "experiment":
         # Single-experiment mode
         experiment = ExperimentLoader().load(target)
@@ -214,6 +230,7 @@ def run(
             session_num=session,
             run_num=run_num,
             experiment=experiment,
+            remotes=tuple(remotes_list),
         )
     else:
         # Battery mode: from manifest OR inline --exps
@@ -254,6 +271,7 @@ def run(
             battery_manifest=battery,
             experiments_by_id=experiments_by_id,
             counterbalance_strategy=strategy,
+            remotes=tuple(remotes_list),
         )
 
     fastapi_app = create_app(config)

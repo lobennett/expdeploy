@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +14,7 @@ from expdeploy.app import AppConfig, create_app
 from expdeploy.battery.counterbalance import FixedStrategy
 from expdeploy.loader import ExperimentLoader
 from expdeploy.manifest import BatteryExperimentRef, BatteryInfo, BatteryManifest
+from expdeploy.storage.base import SaveResult
 from expdeploy.storage.fs import FSAdapter
 from expdeploy.storage.sqlite import SQLiteCatalog
 
@@ -266,3 +268,37 @@ def test_battery_complete_screen_after_all(battery_client):
     response = client.get("/")
     assert response.status_code == 200
     assert "Battery complete" in response.text or "complete" in response.text.lower()
+
+
+def test_post_data_calls_remote_adapter(hello_experiment, tmp_path):
+    mock_remote = MagicMock()
+    mock_remote.name = "fake"
+    mock_remote.save.return_value = SaveResult(ok=True, path="remote://x")
+    data_dir = tmp_path / "data"
+    catalog = SQLiteCatalog(db_path=data_dir / "catalog.sqlite")
+    catalog.init_schema()
+    config = AppConfig(
+        vendored_root=_vendored_root(),
+        storage=FSAdapter(data_dir=data_dir),
+        catalog=catalog,
+        state_dir=tmp_path / "state",
+        subject_id="01",
+        session_num=None,
+        run_num=None,
+        experiment=ExperimentLoader().load(hello_experiment),
+        remotes=(mock_remote,),
+    )
+    client = TestClient(create_app(config))
+    response = client.post(
+        "/api/data",
+        json={
+            "exp_id": "hello",
+            "subject_id": "01",
+            "trials": [],
+            "status": "finished",
+            "started_at": "2026-05-17T10:00:00+00:00",
+            "ended_at": "2026-05-17T10:01:00+00:00",
+        },
+    )
+    assert response.status_code == 200
+    mock_remote.save.assert_called_once()

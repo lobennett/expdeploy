@@ -51,6 +51,9 @@ class AppConfig:
     experiments_by_id: dict[str, LoadedExperiment] | None = None
     counterbalance_strategy: CounterbalanceStrategy | None = None
 
+    # Remote adapters (mirrors; best-effort)
+    remotes: tuple[StorageAdapter, ...] = ()
+
     def is_battery(self) -> bool:
         return self.battery_manifest is not None
 
@@ -213,6 +216,20 @@ def create_app(config: AppConfig) -> FastAPI:
         # SQLite catalog write (best-effort but synchronous)
         if config.catalog is not None:
             config.catalog.save(record)
+        # Remote adapter writes (best-effort mirrors)
+        for remote in config.remotes:
+            rresult = remote.save(record)
+            if config.catalog is not None:
+                from expdeploy.storage.sqlite import SQLiteCatalog
+
+                if isinstance(config.catalog, SQLiteCatalog):
+                    config.catalog.record_remote_attempt(
+                        record.run_id,
+                        remote.name,
+                        "synced" if rresult.ok else "failed",
+                        remote_uri=rresult.path if rresult.ok else None,
+                        error=None if rresult.ok else rresult.error,
+                    )
         # BIDS write if applicable
         loaded = _find_loaded(config, record.exp_id)
         if (
