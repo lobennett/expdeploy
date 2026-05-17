@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from typer.testing import CliRunner
 
@@ -45,7 +45,7 @@ def test_validate_missing_manifest(tmp_path):
     exp_dir.mkdir()
     result = runner.invoke(app, ["validate", str(exp_dir)])
     assert result.exit_code != 0
-    assert "manifest.toml" in result.stdout or "manifest.toml" in str(result.exception)
+    assert "manifest.toml" in result.stderr or "manifest.toml" in str(result.exception)
 
 
 def test_validate_bad_bids_task_label(tmp_path):
@@ -94,9 +94,7 @@ def test_run_command_rejects_busy_port(tmp_path):
             ["run", str(exp_dir), "--subject", "01", "--port", str(busy_port), "--no-browser"],
         )
         assert result.exit_code != 0
-        # Look for the suggested-next-port hint (could be in stdout OR stderr depending on err=True flag)
-        out = (result.stdout or "") + (result.stderr or "")
-        assert "busy" in out.lower() or "in use" in out.lower()
+        assert "busy" in (result.stderr or "").lower() or "in use" in (result.stderr or "").lower()
     finally:
         sock.close()
 
@@ -243,7 +241,109 @@ def test_status_lists_runs(tmp_path):
     assert "01" in result.stdout
 
 
-def test_sync_stub_says_no_remote(tmp_path):
-    result = runner.invoke(app, ["sync", "--adapter", "supabase"])
+def test_sync_no_catalog_exits_nonzero(tmp_path):
+    result = runner.invoke(
+        app, ["sync", "--adapter", "supabase", "--data-dir", str(tmp_path / "data")]
+    )
+    assert result.exit_code != 0
+
+
+def test_supabase_migrate_without_env_fails(monkeypatch):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    result = runner.invoke(app, ["supabase", "migrate"])
+    assert result.exit_code != 0
+    err = (result.stderr or "") + (result.stdout or "")
+    assert "SUPABASE_URL" in err or "service_role" in err.lower()
+
+
+def test_supabase_test_connection_without_env_fails(monkeypatch):
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    result = runner.invoke(app, ["supabase", "test-connection"])
+    assert result.exit_code != 0
+
+
+def test_build_generates_dockerfile(tmp_path, monkeypatch):
+    # Build manifests + battery
+    for exp_id in ["flanker", "stroop"]:
+        d = tmp_path / exp_id
+        d.mkdir()
+        (d / "manifest.toml").write_text(
+            HELLO_TOML.replace('exp_id = "hello"', f'exp_id = "{exp_id}"')
+        )
+        (d / "index.js").write_text("export default () => {};")
+    (tmp_path / "battery.toml").write_text(
+        """[battery]
+name = "study2026"
+counterbalance = "fixed"
+
+[[experiments]]
+exp_id = "flanker"
+path = "./flanker"
+
+[[experiments]]
+exp_id = "stroop"
+path = "./stroop"
+"""
+    )
+    # Mock subprocess.run so we don't actually invoke docker
+    with patch("expdeploy.cli.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        result = runner.invoke(
+            app,
+            [
+                "build",
+                str(tmp_path / "battery.toml"),
+                "--tag",
+                "ghcr.io/lobennett/study2026:test",
+                "--engine",
+                "podman",
+                "--no-push",
+            ],
+        )
+    assert result.exit_code == 0, result.stdout
+    dockerfile = tmp_path / "study.Dockerfile"
+    assert dockerfile.exists()
+    body = dockerfile.read_text()
+    assert "FROM ghcr.io/lobennett/expdeploy:" in body
+    assert "COPY ./flanker" in body
+    assert "COPY ./stroop" in body
+    assert "COPY ./battery.toml" in body
+
+
+def test_build_invokes_engine(tmp_path):
+    d = tmp_path / "exp"
+    d.mkdir()
+    (d / "manifest.toml").write_text(HELLO_TOML.replace('exp_id = "hello"', 'exp_id = "single"'))
+    (d / "index.js").write_text("export default () => {};")
+    (tmp_path / "battery.toml").write_text(
+        """[battery]
+name = "x"
+counterbalance = "fixed"
+
+[[experiments]]
+exp_id = "single"
+path = "./exp"
+"""
+    )
+    with patch("expdeploy.cli.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        result = runner.invoke(
+            app,
+            [
+                "build",
+                str(tmp_path / "battery.toml"),
+                "--tag",
+                "t:1",
+                "--engine",
+                "podman",
+                "--no-push",
+            ],
+        )
     assert result.exit_code == 0
-    assert "no remote adapter" in result.stdout.lower() or "plan 3" in result.stdout.lower()
+    # Confirm the engine got called with build + -t
+    calls = [c.args[0] for c in mock_run.call_args_list]
+    build_calls = [c for c in calls if "build" in c]
+    assert build_calls, "expected at least one engine build call"
+    assert any("t:1" in c for c in build_calls)

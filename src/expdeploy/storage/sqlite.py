@@ -125,3 +125,47 @@ class SQLiteCatalog:
                 (subject_id,),
             ).fetchall()
         return [dict(r) for r in rows]
+
+    def record_remote_attempt(
+        self,
+        run_id: str,
+        adapter: str,
+        status: str,
+        remote_uri: str | None = None,
+        error: str | None = None,
+    ) -> None:
+        from datetime import UTC, datetime
+
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO remote_sync (run_id, adapter, status, attempted_at, remote_uri, error)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(run_id, adapter) DO UPDATE SET
+                    status = excluded.status,
+                    attempted_at = excluded.attempted_at,
+                    remote_uri = excluded.remote_uri,
+                    error = excluded.error
+                """,
+                (run_id, adapter, status, datetime.now(UTC).isoformat(), remote_uri, error),
+            )
+
+    def pending_remote_writes(self, adapter: str | None = None) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            if adapter is not None:
+                rows = conn.execute(
+                    """
+                    SELECT r.* FROM runs r
+                    LEFT JOIN remote_sync rs ON r.run_id = rs.run_id AND rs.adapter = ?
+                    WHERE rs.status IS NULL OR rs.status != 'synced'
+                    """,
+                    (adapter,),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT r.* FROM runs r
+                    WHERE r.run_id NOT IN (SELECT run_id FROM remote_sync WHERE status = 'synced')
+                    """,
+                ).fetchall()
+        return [dict(r) for r in rows]

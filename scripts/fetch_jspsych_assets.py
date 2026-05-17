@@ -122,6 +122,7 @@ def main() -> int:
                     "--format=esm",
                     "--platform=browser",
                     "--target=es2022",
+                    "--external:jspsych",
                     f"--outfile={out}",
                 ],
                 cwd=tmpdir,
@@ -163,7 +164,9 @@ def main() -> int:
         )
 
     print(f"\nWrote {len(manifest)} entries to {manifest_path}")
-    print("Done — all bundles are self-contained ESM (no unresolved bare imports).")
+    print(
+        "Done — core is self-contained ESM; plugins reference jspsych as an external import resolved via import map."
+    )
     return 0
 
 

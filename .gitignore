@@ -38,3 +38,6 @@ state/
 
 # expdeploy-specific
 sessions_*/
+
+# mkdocs build output
+site/

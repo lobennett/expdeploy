@@ -22,7 +22,6 @@ dependencies = [
   "typer>=0.12",
   "jinja2>=3.1",
   "filelock>=3.13",
-  "tomli>=2.0 ; python_version < '3.11'",
   "rich>=13.7",
   "python-ulid>=2.7",
 ]
@@ -39,6 +38,14 @@ dev = [
   "mypy>=1.9",
   "pre-commit>=3.6",
 ]
+supabase = [
+  "supabase>=2.4",
+]
+docs = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+  "mkdocs-typer>=0.0.3",
+]
 
 [project.scripts]
 expdeploy = "expdeploy.cli:app"
@@ -51,8 +58,7 @@ build-backend = "hatchling.build"
 packages = ["src/expdeploy"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"src/expdeploy/jspsych_assets" = "expdeploy/jspsych_assets"
-"src/expdeploy/templates" = "expdeploy/templates"
+"src/expdeploy/storage/supabase_schema.sql" = "expdeploy/storage/supabase_schema.sql"
 
 [tool.ruff]
 target-version = "py311"
@@ -79,7 +85,7 @@ python_version = "3.11"
 files = ["src/expdeploy"]
 
 [[tool.mypy.overrides]]
-module = "tomli.*"
+module = "supabase.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

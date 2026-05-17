@@ -163,7 +163,7 @@ def test_save_bids_writes_json_sidecar(tmp_path):
     sidecar = tmp_path / "bids" / "sub-01" / "func" / "sub-01_task-flanker_events.json"
     assert sidecar.exists()
     data = json.loads(sidecar.read_text())
-    assert data["trial_type"]["description"] == "Congruency of flanker."
+    assert data["trial_type"]["Description"] == "Congruency of flanker."
     assert data["trial_type"]["Levels"]["congruent"] == "Congruent"
 
 

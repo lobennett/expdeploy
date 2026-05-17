@@ -186,7 +186,7 @@ class FSAdapter:
         sidecar: dict[str, Any] = {}
         for col_name, col in bids.columns.items():
             sidecar[col_name] = {
-                "description": col.description,
+                "Description": col.description,
             }
             if col.levels:
                 sidecar[col_name]["Levels"] = dict(col.levels)
