@@ -1,6 +1,6 @@
 [project]
 name = "expdeploy"
-version = "0.1.0a0"
+version = "0.1.0"
 description = "Modern Python deploy tool for jsPsych v8 experiments"
 readme = "README.md"
 requires-python = ">=3.11"
