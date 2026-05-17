@@ -22,7 +22,6 @@ dependencies = [
   "typer>=0.12",
   "jinja2>=3.1",
   "filelock>=3.13",
-  "tomli>=2.0 ; python_version < '3.11'",
   "rich>=13.7",
   "python-ulid>=2.7",
 ]
@@ -77,10 +76,6 @@ quote-style = "double"
 strict = true
 python_version = "3.11"
 files = ["src/expdeploy"]
-
-[[tool.mypy.overrides]]
-module = "tomli.*"
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --strict-config"
