@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import os
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -10,6 +12,20 @@ from expdeploy.storage.base import RunRecord, SaveResult
 
 if TYPE_CHECKING:
     from supabase import Client
+
+_LABEL_RE = re.compile(r"^[a-zA-Z0-9-]+$")
+
+
+def _make_storage_path(record: RunRecord) -> str:
+    parts = [f"sub-{record.subject_id}"]
+    if record.session_num is not None:
+        parts.append(f"ses-{record.session_num}")
+    fname = parts[:]
+    fname.append(f"task-{record.exp_id}")
+    if record.run_num is not None:
+        fname.append(f"run-{record.run_num}")
+    filename = "_".join(fname) + "_beh.json"
+    return "/".join(parts) + "/" + filename
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,5 +64,23 @@ class SupabaseAdapter:
         return self._client
 
     def save(self, record: RunRecord) -> SaveResult:
-        # Stubbed; full impl in Task 6.
-        return SaveResult(ok=False, path="", error="not yet implemented")
+        try:
+            client = self._get_client()
+            row = record.model_dump(mode="json")
+            # Drop fields that don't have Postgres columns; trials/interaction become JSONB
+            row["trials_json"] = row.pop("trials")
+            row["interaction_data_json"] = row.pop("interaction_data")
+            row.pop("raw_payload", None)  # raw bucket upload carries the payload
+            client.schema(self.config.schema).table("runs").upsert(row).execute()
+
+            storage_path = _make_storage_path(record)
+            body = json.dumps(record.model_dump(mode="json"), sort_keys=True).encode("utf-8")
+            client.storage.from_(self.config.bucket).upload(
+                path=storage_path,
+                file=body,
+                file_options={"content-type": "application/json", "upsert": "true"},
+            )
+            remote_uri = f"{self.config.url}/storage/v1/object/{self.config.bucket}/{storage_path}"
+        except Exception as exc:
+            return SaveResult(ok=False, path="", error=str(exc))
+        return SaveResult(ok=True, path=remote_uri)
