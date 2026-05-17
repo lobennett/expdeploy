@@ -5,7 +5,7 @@ from __future__ import annotations
 import socket
 import webbrowser
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
 import uvicorn
@@ -21,6 +21,7 @@ from expdeploy.battery.counterbalance import (
 )
 from expdeploy.loader import ExperimentLoader, LoadedExperiment
 from expdeploy.manifest import BatteryExperimentRef, BatteryInfo, BatteryManifest, load_battery
+from expdeploy.storage.base import RunRecord
 from expdeploy.storage.fs import FSAdapter
 from expdeploy.storage.sqlite import SQLiteCatalog
 
@@ -304,16 +305,79 @@ def status(
     Console().print(table)
 
 
+def _row_to_run_record(row: dict[str, Any]) -> RunRecord:
+    import json as _json
+
+    return RunRecord(
+        run_id=row["run_id"],
+        exp_id=row["exp_id"],
+        exp_version=row["exp_version"],
+        subject_id=row["subject_id"],
+        session_num=row["session_num"],
+        run_num=row["run_num"],
+        battery_id=row["battery_id"],
+        group_index=row["group_index"],
+        started_at=row["started_at"],
+        ended_at=row["ended_at"],
+        status=row["status"],
+        trials=_json.loads(row["trials_json"] or "[]"),
+        interaction_data=_json.loads(row["interaction_data_json"] or "[]"),
+        jspsych_version=row["jspsych_version"],
+        deploy_version=row["deploy_version"],
+        client_user_agent=row["client_user_agent"],
+    )
+
+
 @app.command()
 def sync(
-    adapter: Annotated[str, typer.Option("--adapter")] = "",
+    adapter: Annotated[str, typer.Option("--adapter")] = "supabase",
     dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
-    _data_dir: Annotated[Path, typer.Option("--data-dir")] = Path("./data"),
+    data_dir: Annotated[Path, typer.Option("--data-dir")] = Path("./data"),
 ) -> None:
-    """Replay failed remote-storage writes. (Remote adapters land in Plan 3.)"""
-    typer.echo(
-        f"No remote adapter '{adapter or '<unset>'}' available yet. Remote sync ships in Plan 3."
-    )
+    """Replay failed remote-storage writes against the configured adapter."""
+    catalog = SQLiteCatalog(db_path=data_dir / "catalog.sqlite")
+    if not catalog.db_path.exists():
+        typer.echo(f"No catalog at {catalog.db_path}", err=True)
+        raise typer.Exit(code=1)
+    pending = catalog.pending_remote_writes(adapter=adapter)
+    if not pending:
+        typer.echo("Nothing to sync.")
+        return
+
+    if dry_run:
+        typer.echo(f"Would replay {len(pending)} run(s) against {adapter}:")
+        for r in pending:
+            typer.echo(f"  - {r['run_id']} ({r['subject_id']} / {r['exp_id']})")
+        return
+
+    if adapter != "supabase":
+        typer.echo(f"Unknown adapter {adapter!r}", err=True)
+        raise typer.Exit(code=2)
+
+    from expdeploy.storage.supabase import SupabaseAdapter, SupabaseConfig
+
+    try:
+        cfg = SupabaseConfig.from_env()
+    except Exception as exc:
+        typer.echo(f"Supabase config error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    sa = SupabaseAdapter(config=cfg)
+    ok_count = 0
+    fail_count = 0
+    for row in pending:
+        record = _row_to_run_record(row)
+        result = sa.save(record)
+        if result.ok:
+            catalog.record_remote_attempt(record.run_id, adapter, "synced", remote_uri=result.path)
+            ok_count += 1
+        else:
+            catalog.record_remote_attempt(record.run_id, adapter, "failed", error=result.error)
+            fail_count += 1
+
+    typer.echo(f"Synced {ok_count} / Failed {fail_count}.")
+    if fail_count:
+        raise typer.Exit(code=1)
 
 
 @init_app.command("experiment")

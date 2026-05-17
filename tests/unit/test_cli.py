@@ -241,10 +241,11 @@ def test_status_lists_runs(tmp_path):
     assert "01" in result.stdout
 
 
-def test_sync_stub_says_no_remote(tmp_path):
-    result = runner.invoke(app, ["sync", "--adapter", "supabase"])
-    assert result.exit_code == 0
-    assert "no remote adapter" in result.stdout.lower() or "plan 3" in result.stdout.lower()
+def test_sync_no_catalog_exits_nonzero(tmp_path):
+    result = runner.invoke(
+        app, ["sync", "--adapter", "supabase", "--data-dir", str(tmp_path / "data")]
+    )
+    assert result.exit_code != 0
 
 
 def test_supabase_migrate_without_env_fails(monkeypatch):
